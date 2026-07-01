@@ -11,6 +11,7 @@
     "start:prod": "node dist/src/main.js",
     "lint": "tsc --noEmit",
     "db:migrate": "ts-node scripts/migrate.ts",
+    "db:reset": "ts-node scripts/reset-db.ts",
     "db:seed": "ts-node scripts/seed.ts",
     "test:api": "ts-node scripts/test-apis.ts"
   },

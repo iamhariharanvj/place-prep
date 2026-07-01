@@ -500,6 +500,32 @@ async function main() {
   if (tempRoadmapId) {
     await runTest(
       {
+        name: 'Mentor import roadmap JSON',
+        method: 'POST',
+        path: `/roadmaps/${tempRoadmapId}/import`,
+        token: 'mentor',
+        body: {
+          mode: 'append',
+          modules: [
+            {
+              title: 'Imported Module',
+              milestones: [
+                {
+                  title: 'Imported Milestone',
+                  objectives: [
+                    { title: 'Imported objective', type: 'READ', xpReward: 10 },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        expect: 200,
+      },
+      tokens,
+    );
+    await runTest(
+      {
         name: 'Mentor publish roadmap',
         method: 'PATCH',
         path: `/roadmaps/${tempRoadmapId}/publish`,

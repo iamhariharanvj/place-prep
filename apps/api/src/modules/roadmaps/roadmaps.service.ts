@@ -30,6 +30,31 @@ export const createObjectiveSchema = z.object({
   order: z.number().int().min(1),
 });
 
+const importObjectiveSchema = z.object({
+  title: z.string().min(2).max(200),
+  description: z.string().max(2000).optional(),
+  type: z.enum(['READ', 'PRACTICE', 'QUIZ', 'PROJECT', 'MOCK_INTERVIEW']).default('READ'),
+  xpReward: z.number().int().min(1).max(1000).default(10),
+  order: z.number().int().min(1).optional(),
+});
+
+const importMilestoneSchema = z.object({
+  title: z.string().min(2).max(200),
+  order: z.number().int().min(1).optional(),
+  objectives: z.array(importObjectiveSchema).default([]),
+});
+
+const importModuleSchema = z.object({
+  title: z.string().min(2).max(200),
+  order: z.number().int().min(1).optional(),
+  milestones: z.array(importMilestoneSchema).default([]),
+});
+
+export const importRoadmapTreeSchema = z.object({
+  mode: z.enum(['append', 'replace']).default('append'),
+  modules: z.array(importModuleSchema).min(1).max(50),
+});
+
 @Injectable()
 export class RoadmapsService {
   constructor(private db: DrizzleService) {}
@@ -211,6 +236,67 @@ export class RoadmapsService {
 
   async deleteObjective(id: string) {
     await this.db.db.delete(objectives).where(eq(objectives.id, id));
+  }
+
+  async importTree(roadmapId: string, dto: z.infer<typeof importRoadmapTreeSchema>) {
+    const [roadmap] = await this.db.db.select().from(roadmaps).where(eq(roadmaps.id, roadmapId)).limit(1);
+    if (!roadmap) {
+      throw new NotFoundException({ error: { code: 'NOT_FOUND', message: 'Roadmap not found', details: {} } });
+    }
+
+    const existingModules = await this.db.db.select().from(modules).where(eq(modules.roadmapId, roadmapId));
+    const maxModuleOrder = existingModules.reduce((max, mod) => Math.max(max, mod.order), 0);
+
+    await this.db.db.transaction(async (tx) => {
+      if (dto.mode === 'replace') {
+        await tx.delete(modules).where(eq(modules.roadmapId, roadmapId));
+      }
+
+      const moduleOrderStart = dto.mode === 'replace' ? 0 : maxModuleOrder;
+
+      for (let mi = 0; mi < dto.modules.length; mi++) {
+        const modDto = dto.modules[mi];
+        const modOrder = dto.mode === 'append'
+          ? moduleOrderStart + mi + 1
+          : (modDto.order ?? mi + 1);
+        const modId = newId();
+
+        await tx.insert(modules).values({
+          id: modId,
+          roadmapId,
+          title: modDto.title,
+          order: modOrder,
+        });
+
+        for (let si = 0; si < modDto.milestones.length; si++) {
+          const msDto = modDto.milestones[si];
+          const msId = newId();
+
+          await tx.insert(milestones).values({
+            id: msId,
+            moduleId: modId,
+            title: msDto.title,
+            order: msDto.order ?? si + 1,
+          });
+
+          for (let oi = 0; oi < msDto.objectives.length; oi++) {
+            const objDto = msDto.objectives[oi];
+
+            await tx.insert(objectives).values({
+              id: newId(),
+              milestoneId: msId,
+              title: objDto.title,
+              description: objDto.description ?? null,
+              type: objDto.type,
+              xpReward: objDto.xpReward,
+              order: objDto.order ?? oi + 1,
+            });
+          }
+        }
+      }
+    });
+
+    return this.getById(roadmapId);
   }
 
   async findById(id: string) {

@@ -306,6 +306,12 @@ Open your Vercel URL and verify:
 - Confirm password and project ref in the connection string.
 - Ensure Supabase project is not paused (free tier).
 
+### App crashes on startup: `DATABASE_URL` / `REDIS_URL` Required
+
+- **Cause:** Environment variables were not set on the Railway **API** service. Local `.env` is not included in Docker builds.
+- **Fix:** Railway → API service → **Variables** → add `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`, etc. See [RAILWAY.md](RAILWAY.md).
+- Redeploy after saving variables.
+
 ### Health returns `"redis": false`
 
 - Use **`rediss://`** (TLS), not `redis://`, for Upstash.

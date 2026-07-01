@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
+import { api, ApiError, formatApiError } from '@/lib/api-client';
 import { useParams, useRouter } from 'next/navigation';
 
 type Objective = { id: string; title: string; description?: string; type: string; xpReward: number; order: number };
@@ -12,6 +12,151 @@ type Roadmap = { id: string; slug: string; title: string; description?: string; 
 
 const OBJ_TYPES = ['READ', 'PRACTICE', 'QUIZ', 'PROJECT', 'MOCK_INTERVIEW'];
 const TYPE_LABEL: Record<string, string> = { READ: '📖 Read', PRACTICE: '💻 Practice', QUIZ: '🧠 Quiz', PROJECT: '🏗️ Project', MOCK_INTERVIEW: '🎤 Mock' };
+
+const IMPORT_EXAMPLE = `{
+  "modules": [
+    {
+      "title": "Arrays & Strings",
+      "milestones": [
+        {
+          "title": "Basics",
+          "objectives": [
+            { "title": "Read array fundamentals", "type": "READ", "xpReward": 10 },
+            { "title": "Solve 5 easy problems", "type": "PRACTICE", "xpReward": 25 }
+          ]
+        }
+      ]
+    }
+  ]
+}`;
+
+function ImportJsonPanel({
+  roadmapId,
+  hasExistingModules,
+  onImported,
+}: {
+  roadmapId: string;
+  hasExistingModules: boolean;
+  onImported: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [jsonText, setJsonText] = useState('');
+  const [replace, setReplace] = useState(false);
+  const [error, setError] = useState('');
+
+  const importMut = useMutation({
+    mutationFn: (body: { mode: 'append' | 'replace'; modules: unknown[] }) =>
+      api(`/roadmaps/${roadmapId}/import`, { method: 'POST', body: JSON.stringify(body) }),
+    onSuccess: () => {
+      setJsonText('');
+      setReplace(false);
+      setError('');
+      setOpen(false);
+      onImported();
+    },
+    onError: (e: unknown) => {
+      if (e instanceof ApiError) {
+        setError(formatApiError(e.body, 'Import failed'));
+      } else {
+        setError('Import failed');
+      }
+    },
+  });
+
+  const handleImport = () => {
+    setError('');
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch {
+      setError('Invalid JSON — check commas, quotes, and brackets.');
+      return;
+    }
+
+    let modules: unknown;
+    if (Array.isArray(parsed)) {
+      modules = parsed;
+    } else if (parsed && typeof parsed === 'object' && 'modules' in parsed) {
+      modules = (parsed as { modules: unknown }).modules;
+    } else {
+      setError('JSON must be an object with a "modules" array, or a modules array at the root.');
+      return;
+    }
+
+    if (!Array.isArray(modules) || modules.length === 0) {
+      setError('At least one module is required.');
+      return;
+    }
+
+    if (replace && hasExistingModules && !confirm('Replace all existing modules, milestones, and objectives? This cannot be undone.')) {
+      return;
+    }
+
+    importMut.mutate({ mode: replace ? 'replace' : 'append', modules });
+  };
+
+  return (
+    <div className="card mb-4 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-slate-50 transition-colors"
+      >
+        <div>
+          <p className="text-sm font-medium text-slate-800">Import from JSON</p>
+          <p className="text-xs text-slate-500">Bulk-add modules, milestones, and objectives</p>
+        </div>
+        <span className="text-slate-400 text-sm">{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 border-t border-slate-100 space-y-3">
+          <textarea
+            className="input font-mono text-xs min-h-[220px] resize-y"
+            placeholder={IMPORT_EXAMPLE}
+            value={jsonText}
+            onChange={(e) => setJsonText(e.target.value)}
+            disabled={importMut.isPending}
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setJsonText(IMPORT_EXAMPLE)}
+              disabled={importMut.isPending}
+              className="btn-ghost btn-sm"
+            >
+              Load example
+            </button>
+            {hasExistingModules && (
+              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={replace}
+                  onChange={(e) => setReplace(e.target.checked)}
+                  disabled={importMut.isPending}
+                  className="rounded border-slate-300"
+                />
+                Replace existing content
+              </label>
+            )}
+            <button
+              type="button"
+              onClick={handleImport}
+              disabled={importMut.isPending || !jsonText.trim()}
+              className="btn-primary btn-sm ml-auto"
+            >
+              {importMut.isPending ? 'Importing…' : 'Import JSON'}
+            </button>
+          </div>
+          <p className="text-xs text-slate-500">
+            Objective types: READ, PRACTICE, QUIZ, PROJECT, MOCK_INTERVIEW. Orders are auto-assigned when omitted.
+          </p>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AddForm({ placeholder, onAdd, busy }: { placeholder: string; onAdd: (v: string) => void; busy: boolean }) {
   const [val, setVal] = useState('');
@@ -241,6 +386,12 @@ export default function EditRoadmapPage({ params }: { params: Promise<{ id: stri
           <button onClick={() => router.push('/mentor/roadmaps')} disabled={publishMut.isPending} className="btn-ghost btn-sm">← Back</button>
         </div>
       </div>
+
+      <ImportJsonPanel
+        roadmapId={roadmap.id}
+        hasExistingModules={roadmap.modules.length > 0}
+        onImported={() => qc.invalidateQueries({ queryKey: ['roadmap-edit', id] })}
+      />
 
       {/* Modules */}
       {roadmap.modules.length === 0 ? (

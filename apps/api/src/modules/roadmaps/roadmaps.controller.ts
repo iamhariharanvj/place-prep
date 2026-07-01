@@ -10,6 +10,7 @@ import {
   createModuleSchema,
   createMilestoneSchema,
   createObjectiveSchema,
+  importRoadmapTreeSchema,
 } from './roadmaps.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { z } from 'zod';
@@ -65,6 +66,15 @@ export class RoadmapsController {
   @Patch(':id/publish')
   publish(@Param('id') id: string, @Body('published') published: boolean) {
     return this.roadmaps.setPublished(id, published);
+  }
+
+  @Roles(Role.MENTOR)
+  @Post(':id/import')
+  importTree(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(importRoadmapTreeSchema)) dto: z.infer<typeof importRoadmapTreeSchema>,
+  ) {
+    return this.roadmaps.importTree(id, dto);
   }
 
   @Roles(Role.MENTOR)

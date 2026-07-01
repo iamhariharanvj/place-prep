@@ -7,6 +7,7 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "db:migrate": "pnpm --filter @placement/api db:migrate",
+    "db:reset": "pnpm --filter @placement/api db:reset",
     "db:seed": "pnpm --filter @placement/api db:seed"
   },
   "devDependencies": {
