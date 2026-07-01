@@ -1,0 +1,9 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "apps/api/Dockerfile"
+dockerfileTarget = "production"
+
+[deploy]
+startCommand = "node dist/src/main.js"
+healthcheckPath = "/api/v1/health"
+restartPolicyType = "ON_FAILURE"
