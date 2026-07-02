@@ -7,6 +7,11 @@ export const enrollSchema = z.object({
 });
 export type EnrollDto = z.infer<typeof enrollSchema>;
 
+export const updateEnrollmentPaceSchema = z.object({
+  pace: z.number().int().min(LIMITS.PACE_MIN).max(LIMITS.PACE_MAX),
+});
+export type UpdateEnrollmentPaceDto = z.infer<typeof updateEnrollmentPaceSchema>;
+
 export const completeObjectiveSchema = z.object({
   objectiveId: z.string().uuid(),
 });
@@ -14,6 +19,8 @@ export const completeObjectiveSchema = z.object({
 export interface DailyTaskDto {
   id: string;
   objectiveId: string;
+  milestoneId: string;
+  milestoneTitle: string;
   title: string;
   description: string | null;
   type: string;
@@ -21,6 +28,19 @@ export interface DailyTaskDto {
   status: string;
   carryForward: boolean;
   roadmap: { id: string; title: string; slug: string };
+}
+
+export const advanceDailySchema = z.object({
+  fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+export type AdvanceDailyDto = z.infer<typeof advanceDailySchema>;
+
+export interface EnrollmentDto {
+  id: string;
+  userId: string;
+  roadmapId: string;
+  pace: number;
+  startedAt: string;
 }
 
 export interface CompleteObjectiveResponse {

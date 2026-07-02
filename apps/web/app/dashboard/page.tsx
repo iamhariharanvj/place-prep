@@ -15,9 +15,9 @@ const TYPE_BADGE: Record<string, string> = {
 function TaskItem({ task }: { task: Task }) {
   return (
     <div className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
-      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${task.status === 'DONE' ? 'bg-emerald-400' : 'bg-slate-300'}`} />
+      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${task.status === 'COMPLETED' || task.status === 'DONE' ? 'bg-emerald-400' : 'bg-slate-300'}`} />
       <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate ${task.status === 'DONE' ? 'line-through text-slate-400' : 'text-slate-800'}`}>{task.title}</p>
+        <p className={`text-sm font-medium truncate ${task.status === 'COMPLETED' || task.status === 'DONE' ? 'line-through text-slate-400' : 'text-slate-800'}`}>{task.title}</p>
         <span className={`text-xs ${TYPE_BADGE[task.type] ?? 'badge-slate'}`}>{task.type}</span>
       </div>
       <span className="xp-badge">+{task.xpReward}</span>
@@ -56,7 +56,7 @@ export default function DashboardPage() {
     enabled: !!user,
   });
 
-  const done = tasks.filter((t) => t.status === 'DONE').length;
+  const done = tasks.filter((t) => t.status === 'COMPLETED' || t.status === 'DONE').length;
   const total = tasks.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 

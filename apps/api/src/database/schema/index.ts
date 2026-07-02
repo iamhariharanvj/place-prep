@@ -94,6 +94,7 @@ export const dailyTasks = pgTable('daily_tasks', {
   id: text('id').primaryKey(),
   userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   objectiveId: text('objective_id').notNull().references(() => objectives.id, { onDelete: 'cascade' }),
+  milestoneId: text('milestone_id').notNull().references(() => milestones.id, { onDelete: 'cascade' }),
   assignedDate: date('assigned_date').notNull(),
   status: text('status').notNull().default('PENDING'),
   carryForward: boolean('carry_forward').notNull().default(false),

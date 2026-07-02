@@ -94,7 +94,7 @@ export const COMMENTABLE_TYPES: ReadonlySet<MessageType> = new Set([
 
 export const LIMITS = {
   PACE_MIN: 1,
-  PACE_MAX: 10,
+  PACE_MAX: 5,
   CARRY_FORWARD_MAX: 3,
   POSTS_PER_HOUR: 10,
   VOTES_PER_HOUR: 60,

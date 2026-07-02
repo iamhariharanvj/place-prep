@@ -6,6 +6,10 @@ import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
+import { useState } from 'react';
+import { LIMITS } from '@placement/shared';
+
+const PACE_LABELS = ['', 'Steady', 'Balanced', 'Ambitious', 'Intense', 'Full energy'];
 
 type Objective = { id: string; title: string; description?: string; type: string; xpReward: number; order: number };
 type Milestone = { id: string; title: string; order: number; objectives: Objective[] };
@@ -50,11 +54,15 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ slug: 
   });
 
   const enrolled = enrollments?.some((e) => e.roadmapId === roadmap?.id);
+  const [pace, setPace] = useState(2);
 
   const enrollMut = useMutation({
-    mutationFn: (roadmapId: string) =>
-      api('/enrollments', { method: 'POST', body: JSON.stringify({ roadmapId, pace: 2 }) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['enrollments'] }),
+    mutationFn: () =>
+      api('/enrollments', { method: 'POST', body: JSON.stringify({ roadmapId: roadmap!.id, pace }) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['enrollments'] });
+      qc.invalidateQueries({ queryKey: ['daily-tasks'] });
+    },
   });
 
   if (isLoading) {
@@ -100,13 +108,32 @@ export default function RoadmapDetailPage({ params }: { params: Promise<{ slug: 
               {enrolled ? (
                 <span className="badge-green text-sm px-3 py-1.5">✓ Enrolled</span>
               ) : (
-                <button
-                  onClick={() => enrollMut.mutate(roadmap.id)}
-                  disabled={enrollMut.isPending}
-                  className="btn-primary"
-                >
-                  {enrollMut.isPending ? 'Enrolling…' : 'Enroll in this roadmap'}
-                </button>
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-slate-500 mr-1">Milestones/day</span>
+                    {Array.from({ length: LIMITS.PACE_MAX }, (_, i) => i + 1).map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        title={PACE_LABELS[n]}
+                        onClick={() => setPace(n)}
+                        className={`w-8 h-8 rounded-lg text-sm font-semibold ${
+                          pace === n ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => enrollMut.mutate()}
+                    disabled={enrollMut.isPending}
+                    className="btn-primary"
+                  >
+                    {enrollMut.isPending ? 'Enrolling…' : 'Enroll in this roadmap'}
+                  </button>
+                </div>
               )}
             </div>
           )}

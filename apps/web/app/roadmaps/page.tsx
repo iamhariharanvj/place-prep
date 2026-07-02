@@ -1,26 +1,64 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
 import Link from 'next/link';
 import { useState } from 'react';
+import { LIMITS } from '@placement/shared';
 
 type Roadmap = { id: string; slug: string; title: string; description?: string; carryForward: boolean };
 
+const PACE_LABELS = ['', 'Steady', 'Balanced', 'Ambitious', 'Intense', 'Full energy'];
+
 function EnrollButton({ roadmapId, enrolled }: { roadmapId: string; enrolled: boolean }) {
   const qc = useQueryClient();
+  const [pace, setPace] = useState(2);
+  const [open, setOpen] = useState(false);
+
   const mut = useMutation({
-    mutationFn: () => api('/enrollments', { method: 'POST', body: JSON.stringify({ roadmapId, pace: 2 }) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['enrollments'] }),
+    mutationFn: () => api('/enrollments', { method: 'POST', body: JSON.stringify({ roadmapId, pace }) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['enrollments'] });
+      qc.invalidateQueries({ queryKey: ['daily-tasks'] });
+      setOpen(false);
+    },
   });
+
   if (enrolled) return <span className="badge-green">✓ Enrolled</span>;
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="btn-primary btn-sm">
+        Enroll
+      </button>
+    );
+  }
+
   return (
-    <button onClick={() => mut.mutate()} disabled={mut.isPending} className="btn-primary btn-sm">
-      {mut.isPending ? 'Enrolling…' : 'Enroll'}
-    </button>
+    <div className="flex flex-col items-end gap-2">
+      <div className="flex items-center gap-1">
+        {Array.from({ length: LIMITS.PACE_MAX }, (_, i) => i + 1).map((n) => (
+          <button
+            key={n}
+            type="button"
+            title={`${n} milestone${n > 1 ? 's' : ''}/day — ${PACE_LABELS[n]}`}
+            onClick={() => setPace(n)}
+            className={`w-7 h-7 rounded text-xs font-semibold ${
+              pace === n ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setOpen(false)} className="btn-ghost btn-sm">Cancel</button>
+        <button type="button" onClick={() => mut.mutate()} disabled={mut.isPending} className="btn-primary btn-sm">
+          {mut.isPending ? '…' : `Enroll (${pace}/day)`}
+        </button>
+      </div>
+    </div>
   );
 }
 
