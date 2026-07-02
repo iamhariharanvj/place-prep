@@ -33,7 +33,7 @@ export class CronSchedulerService implements OnModuleInit {
     await this.outboxQueue.add(
       JOB_PROCESS_OUTBOX,
       {},
-      { repeat: { every: 10_000 }, removeOnComplete: 100, removeOnFail: 50 },
+      { repeat: { every: 300_000 }, removeOnComplete: 100, removeOnFail: 50 },
     );
 
     await this.dailyQueue.add(

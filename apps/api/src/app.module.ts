@@ -21,6 +21,8 @@ import { ModerationModule } from './modules/moderation/moderation.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { HealthController } from './health.controller';
 
+const workerMode = process.env.RUN_MODE === 'worker';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -38,7 +40,7 @@ import { HealthController } from './health.controller';
     CommunityModule,
     ResourcesModule,
     ModerationModule,
-    JobsModule,
+    ...(workerMode ? [JobsModule] : []),
   ],
   controllers: [HealthController],
   providers: [

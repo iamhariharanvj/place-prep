@@ -19,8 +19,9 @@ import {
   JOB_SEED,
   JOB_DAILY_REMINDER,
 } from './queues.constants';
+import { UPSTASH_WORKER_OPTS } from './worker-options';
 
-@Processor(QUEUE_DAILY)
+@Processor(QUEUE_DAILY, UPSTASH_WORKER_OPTS)
 export class DailyTasksProcessor extends WorkerHost {
   private readonly logger = new Logger(DailyTasksProcessor.name);
 
@@ -37,7 +38,7 @@ export class DailyTasksProcessor extends WorkerHost {
   }
 }
 
-@Processor(QUEUE_OUTBOX)
+@Processor(QUEUE_OUTBOX, UPSTASH_WORKER_OPTS)
 export class OutboxProcessor extends WorkerHost {
   private readonly logger = new Logger(OutboxProcessor.name);
 
@@ -66,7 +67,7 @@ export class OutboxProcessor extends WorkerHost {
   }
 }
 
-@Processor(QUEUE_LEADERBOARD)
+@Processor(QUEUE_LEADERBOARD, UPSTASH_WORKER_OPTS)
 export class LeaderboardProcessor extends WorkerHost {
   private readonly logger = new Logger(LeaderboardProcessor.name);
 
@@ -88,7 +89,7 @@ export class LeaderboardProcessor extends WorkerHost {
   }
 }
 
-@Processor(QUEUE_NOTIFICATIONS)
+@Processor(QUEUE_NOTIFICATIONS, UPSTASH_WORKER_OPTS)
 export class NotificationsProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationsProcessor.name);
 
